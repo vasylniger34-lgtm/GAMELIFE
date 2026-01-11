@@ -682,6 +682,36 @@ export const useGameLifeStore = create<GameLifeState>()(
           });
         }
 
+        // Автоматично архівуємо квести з минулих дат (якщо користувач пропустив кілька днів)
+        // Спочатку позначаємо невиконані квести як failed
+        Object.values(quests).forEach((q) => {
+          if (
+            q.plannedDate && // Тільки квести з датою (не постійні)
+            q.plannedDate < todayKey && // Дата вже пройшла
+            (q.status === "planned" || q.status === "active") // Невиконані квести
+          ) {
+            quests[q.id] = {
+              ...q,
+              status: "failed",
+              executedAt: nowIso()
+            };
+          }
+        });
+
+        // Потім архівуємо всі failed/completed квести з минулих дат
+        Object.values(quests).forEach((q) => {
+          if (
+            q.plannedDate && // Тільки квести з датою
+            q.plannedDate < todayKey && // Дата вже пройшла
+            (q.status === "completed" || q.status === "failed") // Виконані або провалені
+          ) {
+            quests[q.id] = {
+              ...q,
+              status: "archived"
+            };
+          }
+        });
+
         // Створюємо запис для сьогоднішнього дня, якщо його ще немає
         if (!days[todayKey]) {
           // Вибираємо випадкову тему дня
