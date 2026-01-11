@@ -22,8 +22,7 @@
 
 html {
   /* Блокування масштабування на мобільних пристроях */
-  /* pan-x pan-y дозволяє скрол, але блокує pinch-zoom та double-tap zoom */
-  touch-action: pan-x pan-y;
+  touch-action: manipulation;
 }
 
 body {
@@ -35,8 +34,7 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
   min-height: 100vh;
   /* Блокування масштабування на мобільних пристроях */
-  /* pan-x pan-y дозволяє скрол, але блокує pinch-zoom та double-tap zoom */
-  touch-action: pan-x pan-y;
+  touch-action: manipulation;
 }
 
 a {
