@@ -48,6 +48,8 @@ export interface Quest {
   // v1.1: Чи виконано завчасно (для майбутніх квестів)
   completedEarly?: boolean;
   earlyCompletionDate?: string; // Дата фактичного виконання
+  // Зберігає оригінальний статус перед архівуванням (completed або failed)
+  finalStatus?: "completed" | "failed";
 }
 
 // Статус дня

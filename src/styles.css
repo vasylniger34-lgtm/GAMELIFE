@@ -641,7 +641,8 @@ button {
   align-items: center;
 }
 
-.gl-modal-backdrop {
+.gl-modal-backdrop,
+.gl-modal-overlay {
   position: fixed;
   inset: 0;
   display: flex;

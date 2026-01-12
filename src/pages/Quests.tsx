@@ -87,28 +87,22 @@ const Quests: React.FC = () => {
   }, [activeQuests]);
 
   // Для архіву: підрахунок completed/failed по датах
-  // Архівовані квести зберігають інформацію про те, чи були вони completed чи failed
-  // через executedAt та перевірку статусу перед архівуванням
+  // Використовуємо finalStatus для точного визначення статусу перед архівуванням
   const archiveStatsByDate = useMemo(() => {
     if (!showArchive) return {};
     const stats: Record<string, { completed: number; failed: number }> = {};
     activeQuests.forEach((q) => {
       if (q.status !== "archived") return;
       const date = q.plannedDate;
+      if (!date) return;
       if (!stats[date]) {
         stats[date] = { completed: 0, failed: 0 };
       }
-      // Якщо квест має executedAt, він був виконаний або провалений
-      // Перевіряємо через те, чи є executedAt та чи був він completed перед архівуванням
-      // Для простоти: якщо executedAt є, перевіряємо через те, чи є rewards (completed мають rewards)
-      if (q.executedAt) {
-        // Якщо квест має винагороди та executedAt - він був completed
-        // Якщо тільки executedAt без винагорід - він був failed
-        if (q.rewards && (q.rewards.xp || q.rewards.diamonds || q.rewards.stats)) {
-          stats[date].completed++;
-        } else {
-          stats[date].failed++;
-        }
+      // Використовуємо finalStatus для точного визначення
+      if (q.finalStatus === "completed") {
+        stats[date].completed++;
+      } else if (q.finalStatus === "failed") {
+        stats[date].failed++;
       }
     });
     return stats;
@@ -458,9 +452,9 @@ const Quests: React.FC = () => {
                 {isExpanded && (
                   <ul className="gl-list" style={{ marginTop: "0.5rem" }}>
                     {quests.map((q) => {
-                      // Визначаємо статус: якщо executedAt є та є винагороди - completed, інакше failed
-                      const wasCompleted = q.executedAt && q.rewards && (q.rewards.xp || q.rewards.diamonds || q.rewards.stats);
-                      const wasFailed = q.executedAt && !wasCompleted;
+                      // Використовуємо finalStatus для точного визначення статусу
+                      const wasCompleted = q.finalStatus === "completed";
+                      const wasFailed = q.finalStatus === "failed";
                       return (
                         <li key={q.id} className="gl-list-item">
                           <div className="gl-list-main">
@@ -476,8 +470,11 @@ const Quests: React.FC = () => {
                               <div className="gl-list-sub">{q.description}</div>
                             )}
                             <div className="gl-list-meta">
-                              {q.rewards.xp && <span>XP: +{q.rewards.xp}</span>}
-                              {q.rewards.diamonds && <span>💎: +{q.rewards.diamonds}</span>}
+                              {wasCompleted && q.rewards.xp && <span>XP: +{q.rewards.xp}</span>}
+                              {wasCompleted && q.rewards.diamonds && <span>💎: +{q.rewards.diamonds}</span>}
+                              {wasFailed && q.penaltyDiamonds && q.penaltyDiamonds > 0 && (
+                                <span className="gl-negative">💎: -{q.penaltyDiamonds}</span>
+                              )}
                               {q.executedAt && (
                                 <span>Дата: {format(new Date(q.executedAt), "dd.MM.yyyy HH:mm")}</span>
                               )}
@@ -624,32 +621,32 @@ const Quests: React.FC = () => {
 
       {/* v1.1: Модальне вікно для покарання діамантами при провалі квесту */}
       {failingQuestId && (
-        <div className="gl-modal-overlay" onClick={() => setFailingQuestId(null)}>
+        <div className="gl-modal-backdrop" onClick={() => setFailingQuestId(null)}>
           <div className="gl-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="gl-modal-header">
-              <h2 className="gl-modal-title">Провалити квест</h2>
+            <h2 className="gl-modal-title">Провалити квест</h2>
+            <p style={{ marginBottom: "1rem", color: "var(--muted)" }}>Вкажи покарання діамантами за невиконання квесту:</p>
+            <div style={{ marginTop: "1rem", marginBottom: "1rem" }}>
+              <StatSlider
+                label="Покарання діамантами"
+                icon="💎"
+                value={failPenaltyDiamonds}
+                onChange={(value) => setFailPenaltyDiamonds(Math.abs(value))}
+                min={0}
+                max={Math.min(100, diamonds)}
+                allowNegative={false}
+              />
+              {failPenaltyDiamonds > 0 && (
+                <div style={{ marginTop: "0.75rem", padding: "0.75rem", background: "rgba(249, 115, 115, 0.1)", borderRadius: "0.5rem", border: "1px solid rgba(249, 115, 115, 0.3)" }}>
+                  <p style={{ fontSize: "0.9rem", color: "var(--danger)", fontWeight: "600", margin: 0 }}>
+                    💎 -{failPenaltyDiamonds} діамантів
+                  </p>
+                  <p style={{ fontSize: "0.75rem", color: "var(--muted)", margin: "0.25rem 0 0 0" }}>
+                    Поточний баланс: {diamonds} 💎 → Буде: {Math.max(0, diamonds - failPenaltyDiamonds)} 💎
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="gl-modal-body">
-              <p>Вкажи покарання діамантами за невиконання квесту:</p>
-              <div style={{ marginTop: "1rem" }}>
-                <StatSlider
-                  label="Покарання діамантами"
-                  icon="💎"
-                  value={failPenaltyDiamonds}
-                  onChange={(value) => setFailPenaltyDiamonds(Math.abs(value))}
-                  min={0}
-                  max={Math.min(100, diamonds)}
-                  allowNegative={true}
-                />
-                <p className="gl-hint" style={{ marginTop: "0.5rem", fontSize: "0.85rem", color: "var(--danger)" }}>
-                  Діаманти будуть відніматись (мінус)
-                </p>
-                <p className="gl-hint" style={{ marginTop: "0.5rem" }}>
-                  Поточний баланс: {diamonds} 💎
-                </p>
-              </div>
-            </div>
-            <div className="gl-modal-footer">
+            <div className="gl-card-actions">
               <button
                 className="gl-btn gl-btn-secondary"
                 onClick={() => {

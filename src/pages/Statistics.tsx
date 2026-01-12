@@ -18,8 +18,13 @@ const Statistics: React.FC = () => {
     const questsArray = Object.values(quests);
     const finishedDays = daysArray.filter((d) => d.status === "finished");
     const totalDays = finishedDays.length;
-    const completedQuests = questsArray.filter((q) => q.status === "completed").length;
-    const failedQuests = questsArray.filter((q) => q.status === "failed").length;
+    // Враховуємо як активні квести, так і заархівовані (через finalStatus)
+    const completedQuests = questsArray.filter((q) => 
+      q.status === "completed" || (q.status === "archived" && q.finalStatus === "completed")
+    ).length;
+    const failedQuests = questsArray.filter((q) => 
+      q.status === "failed" || (q.status === "archived" && q.finalStatus === "failed")
+    ).length;
 
     return {
       totalDays,

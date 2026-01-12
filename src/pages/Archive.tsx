@@ -83,7 +83,7 @@ const Archive: React.FC = () => {
                   <div className="gl-list-title">{q.title}</div>
                   <div className="gl-list-meta">
                     <span>Дата: {q.plannedDate}</span>
-                    <span>Статус: {translateStatus(q.status)}</span>
+                    <span>Статус: {q.finalStatus ? translateStatus(q.finalStatus) : translateStatus(q.status)}</span>
                   </div>
                 </div>
               </li>

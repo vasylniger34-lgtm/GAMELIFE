@@ -674,9 +674,19 @@ export const useGameLifeStore = create<GameLifeState>()(
               q.plannedDate === previousDate &&
               (q.status === "completed" || q.status === "failed")
             ) {
+              // Застосовуємо покарання для провалених квестів перед архівуванням
+              if (q.status === "failed") {
+                const diamondsToDeduct = q.penaltyDiamonds || 0;
+                if (diamondsToDeduct > 0) {
+                  const newDiamonds = Math.max(0, state.diamonds - diamondsToDeduct);
+                  set({ diamonds: newDiamonds });
+                }
+              }
+              
               quests[q.id] = {
                 ...q,
-                status: "archived"
+                status: "archived",
+                finalStatus: q.status === "completed" ? "completed" : "failed"
               };
             }
           });
@@ -705,9 +715,20 @@ export const useGameLifeStore = create<GameLifeState>()(
             q.plannedDate < todayKey && // Дата вже пройшла
             (q.status === "completed" || q.status === "failed") // Виконані або провалені
           ) {
+            // Застосовуємо покарання для провалених квестів перед архівуванням
+            if (q.status === "failed") {
+              const diamondsToDeduct = q.penaltyDiamonds || 0;
+              if (diamondsToDeduct > 0) {
+                const currentState = get();
+                const newDiamonds = Math.max(0, currentState.diamonds - diamondsToDeduct);
+                set({ diamonds: newDiamonds });
+              }
+            }
+            
             quests[q.id] = {
               ...q,
-              status: "archived"
+              status: "archived",
+              finalStatus: q.status === "completed" ? "completed" : "failed"
             };
           }
         });
@@ -931,7 +952,9 @@ export const useGameLifeStore = create<GameLifeState>()(
         const updatedQuest: Quest = {
           ...quest,
           status: "failed",
-          executedAt: nowIso()
+          executedAt: nowIso(),
+          // Зберігаємо покарання діамантами для подальшого застосування при архівуванні
+          penaltyDiamonds: diamondsToDeduct > 0 ? diamondsToDeduct : quest.penaltyDiamonds
         };
 
         set({
